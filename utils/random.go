@@ -17,4 +17,3 @@ func RandomString(n int) string{
 	}
 	return string(s)
 }
-	

@@ -13,7 +13,7 @@ import (
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO Account (username, display_name, email, password, bio, avatar_url, is_verified, role)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-returning account_id, username, display_name, email, password, bio, avatar_url, is_verified, role, created_at
+RETURNING account_id, username, display_name, email, password, bio, avatar_url, is_verified, role, created_at
 `
 
 type CreateAccountParams struct {

@@ -11,6 +11,7 @@ OFFSET $2
 -- name: CreateAccount :one
 INSERT INTO Account (username, display_name, email, password, bio, avatar_url, is_verified, role)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING *;
 
 
 -- name: UpdateAccount :exec
