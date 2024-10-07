@@ -10,28 +10,48 @@ import (
 	"database/sql"
 )
 
-const createAccount = `-- name: CreateAccount :exec
-INSERT INTO Account (username, email, password, bio, avatar_url)
-VALUES ($1, $2, $3, $4, $5)
+const createAccount = `-- name: CreateAccount :one
+INSERT INTO Account (username, display_name, email, password, bio, avatar_url, is_verified, role)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+returning account_id, username, display_name, email, password, bio, avatar_url, is_verified, role, created_at
 `
 
 type CreateAccountParams struct {
-	Username  string         `json:"username"`
-	Email     string         `json:"email"`
-	Password  string         `json:"password"`
-	Bio       sql.NullString `json:"bio"`
-	AvatarUrl sql.NullString `json:"avatar_url"`
+	Username    string         `json:"username"`
+	DisplayName sql.NullString `json:"display_name"`
+	Email       string         `json:"email"`
+	Password    string         `json:"password"`
+	Bio         sql.NullString `json:"bio"`
+	AvatarUrl   sql.NullString `json:"avatar_url"`
+	IsVerified  bool           `json:"is_verified"`
+	Role        string         `json:"role"`
 }
 
-func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) error {
-	_, err := q.exec(ctx, q.createAccountStmt, createAccount,
+func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
+	row := q.queryRow(ctx, q.createAccountStmt, createAccount,
 		arg.Username,
+		arg.DisplayName,
 		arg.Email,
 		arg.Password,
 		arg.Bio,
 		arg.AvatarUrl,
+		arg.IsVerified,
+		arg.Role,
 	)
-	return err
+	var i Account
+	err := row.Scan(
+		&i.AccountID,
+		&i.Username,
+		&i.DisplayName,
+		&i.Email,
+		&i.Password,
+		&i.Bio,
+		&i.AvatarUrl,
+		&i.IsVerified,
+		&i.Role,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const deleteAccount = `-- name: DeleteAccount :exec
@@ -44,7 +64,7 @@ func (q *Queries) DeleteAccount(ctx context.Context, accountID int32) error {
 }
 
 const getAccountById = `-- name: GetAccountById :one
-SELECT account_id, username, email, password, bio, avatar_url, created_at FROM Account WHERE account_id = $1
+SELECT account_id, username, display_name, email, password, bio, avatar_url, is_verified, role, created_at FROM Account WHERE account_id = $1
 `
 
 func (q *Queries) GetAccountById(ctx context.Context, accountID int32) (Account, error) {
@@ -53,35 +73,84 @@ func (q *Queries) GetAccountById(ctx context.Context, accountID int32) (Account,
 	err := row.Scan(
 		&i.AccountID,
 		&i.Username,
+		&i.DisplayName,
 		&i.Email,
 		&i.Password,
 		&i.Bio,
 		&i.AvatarUrl,
+		&i.IsVerified,
+		&i.Role,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getAllAccounts = `-- name: GetAllAccounts :many
+SELECT account_id, username, display_name, email, password, bio, avatar_url, is_verified, role, created_at FROM Account
+ORDER BY account_id
+LIMIT $1
+OFFSET $2
+`
+
+type GetAllAccountsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetAllAccounts(ctx context.Context, arg GetAllAccountsParams) ([]Account, error) {
+	rows, err := q.query(ctx, q.getAllAccountsStmt, getAllAccounts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Account{}
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.AccountID,
+			&i.Username,
+			&i.DisplayName,
+			&i.Email,
+			&i.Password,
+			&i.Bio,
+			&i.AvatarUrl,
+			&i.IsVerified,
+			&i.Role,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAccount = `-- name: UpdateAccount :exec
 UPDATE Account
-SET username = $1, email = $2, bio = $3, avatar_url = $4
+SET display_name = $1, bio = $2, avatar_url = $3, is_verified = $4
 WHERE account_id = $5
 `
 
 type UpdateAccountParams struct {
-	Username  string         `json:"username"`
-	Email     string         `json:"email"`
-	Bio       sql.NullString `json:"bio"`
-	AvatarUrl sql.NullString `json:"avatar_url"`
-	AccountID int32          `json:"account_id"`
+	DisplayName sql.NullString `json:"display_name"`
+	Bio         sql.NullString `json:"bio"`
+	AvatarUrl   sql.NullString `json:"avatar_url"`
+	IsVerified  bool           `json:"is_verified"`
+	AccountID   int32          `json:"account_id"`
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) error {
 	_, err := q.exec(ctx, q.updateAccountStmt, updateAccount,
-		arg.Username,
-		arg.Email,
+		arg.DisplayName,
 		arg.Bio,
 		arg.AvatarUrl,
+		arg.IsVerified,
 		arg.AccountID,
 	)
 	return err

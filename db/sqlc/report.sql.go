@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createReport = `-- name: CreateReport :exec
@@ -16,9 +15,9 @@ VALUES ($1, $2, $3)
 `
 
 type CreateReportParams struct {
-	AccountID sql.NullInt32  `json:"account_id"`
-	SongID    sql.NullInt32  `json:"song_id"`
-	Reason    sql.NullString `json:"reason"`
+	AccountID int32  `json:"account_id"`
+	SongID    int32  `json:"song_id"`
+	Reason    string `json:"reason"`
 }
 
 func (q *Queries) CreateReport(ctx context.Context, arg CreateReportParams) error {
@@ -35,11 +34,44 @@ func (q *Queries) DeleteReport(ctx context.Context, reportID int32) error {
 	return err
 }
 
+const getReportsByAccountId = `-- name: GetReportsByAccountId :many
+SELECT report_id, account_id, song_id, reason, reported_at FROM Report WHERE account_id = $1
+`
+
+func (q *Queries) GetReportsByAccountId(ctx context.Context, accountID int32) ([]Report, error) {
+	rows, err := q.query(ctx, q.getReportsByAccountIdStmt, getReportsByAccountId, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Report{}
+	for rows.Next() {
+		var i Report
+		if err := rows.Scan(
+			&i.ReportID,
+			&i.AccountID,
+			&i.SongID,
+			&i.Reason,
+			&i.ReportedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getReportsBySongId = `-- name: GetReportsBySongId :many
 SELECT report_id, account_id, song_id, reason, reported_at FROM Report WHERE song_id = $1
 `
 
-func (q *Queries) GetReportsBySongId(ctx context.Context, songID sql.NullInt32) ([]Report, error) {
+func (q *Queries) GetReportsBySongId(ctx context.Context, songID int32) ([]Report, error) {
 	rows, err := q.query(ctx, q.getReportsBySongIdStmt, getReportsBySongId, songID)
 	if err != nil {
 		return nil, err

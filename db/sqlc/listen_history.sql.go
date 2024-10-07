@@ -9,18 +9,18 @@ import (
 	"context"
 )
 
-const addToListenHistory = `-- name: AddToListenHistory :exec
+const addListenHistory = `-- name: AddListenHistory :exec
 INSERT INTO Listen_History (account_id, song_id)
 VALUES ($1, $2)
 `
 
-type AddToListenHistoryParams struct {
+type AddListenHistoryParams struct {
 	AccountID int32 `json:"account_id"`
 	SongID    int32 `json:"song_id"`
 }
 
-func (q *Queries) AddToListenHistory(ctx context.Context, arg AddToListenHistoryParams) error {
-	_, err := q.exec(ctx, q.addToListenHistoryStmt, addToListenHistory, arg.AccountID, arg.SongID)
+func (q *Queries) AddListenHistory(ctx context.Context, arg AddListenHistoryParams) error {
+	_, err := q.exec(ctx, q.addListenHistoryStmt, addListenHistory, arg.AccountID, arg.SongID)
 	return err
 }
 

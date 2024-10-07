@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createComment = `-- name: CreateComment :exec
@@ -16,9 +15,9 @@ VALUES ($1, $2, $3)
 `
 
 type CreateCommentParams struct {
-	AccountID sql.NullInt32  `json:"account_id"`
-	SongID    sql.NullInt32  `json:"song_id"`
-	Content   sql.NullString `json:"content"`
+	AccountID int32  `json:"account_id"`
+	SongID    int32  `json:"song_id"`
+	Content   string `json:"content"`
 }
 
 func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) error {
@@ -39,7 +38,7 @@ const getCommentsBySongId = `-- name: GetCommentsBySongId :many
 SELECT comment_id, account_id, song_id, content, created_at FROM Comment WHERE song_id = $1
 `
 
-func (q *Queries) GetCommentsBySongId(ctx context.Context, songID sql.NullInt32) ([]Comment, error) {
+func (q *Queries) GetCommentsBySongId(ctx context.Context, songID int32) ([]Comment, error) {
 	rows, err := q.query(ctx, q.getCommentsBySongIdStmt, getCommentsBySongId, songID)
 	if err != nil {
 		return nil, err

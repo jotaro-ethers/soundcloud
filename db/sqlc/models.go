@@ -10,21 +10,32 @@ import (
 )
 
 type Account struct {
-	AccountID int32          `json:"account_id"`
-	Username  string         `json:"username"`
-	Email     string         `json:"email"`
-	Password  string         `json:"password"`
-	Bio       sql.NullString `json:"bio"`
-	AvatarUrl sql.NullString `json:"avatar_url"`
-	CreatedAt sql.NullTime   `json:"created_at"`
+	AccountID   int32          `json:"account_id"`
+	Username    string         `json:"username"`
+	DisplayName sql.NullString `json:"display_name"`
+	Email       string         `json:"email"`
+	Password    string         `json:"password"`
+	Bio         sql.NullString `json:"bio"`
+	AvatarUrl   sql.NullString `json:"avatar_url"`
+	IsVerified  bool           `json:"is_verified"`
+	Role        string         `json:"role"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+}
+
+type Album struct {
+	AlbumID     int32        `json:"album_id"`
+	Name        string       `json:"name"`
+	AccountID   int32        `json:"account_id"`
+	ReleaseDate sql.NullTime `json:"release_date"`
+	IsPublic    sql.NullBool `json:"is_public"`
 }
 
 type Comment struct {
-	CommentID int32          `json:"comment_id"`
-	AccountID sql.NullInt32  `json:"account_id"`
-	SongID    sql.NullInt32  `json:"song_id"`
-	Content   sql.NullString `json:"content"`
-	CreatedAt sql.NullTime   `json:"created_at"`
+	CommentID int32        `json:"comment_id"`
+	AccountID int32        `json:"account_id"`
+	SongID    int32        `json:"song_id"`
+	Content   string       `json:"content"`
+	CreatedAt sql.NullTime `json:"created_at"`
 }
 
 type Follow struct {
@@ -46,10 +57,11 @@ type ListenHistory struct {
 }
 
 type Playlist struct {
-	PlaylistID int32         `json:"playlist_id"`
-	Name       string        `json:"name"`
-	AccountID  sql.NullInt32 `json:"account_id"`
-	CreatedAt  sql.NullTime  `json:"created_at"`
+	PlaylistID int32        `json:"playlist_id"`
+	Name       string       `json:"name"`
+	AccountID  int32        `json:"account_id"`
+	IsPublic   sql.NullBool `json:"is_public"`
+	CreatedAt  sql.NullTime `json:"created_at"`
 }
 
 type PlaylistSong struct {
@@ -59,29 +71,40 @@ type PlaylistSong struct {
 }
 
 type Report struct {
-	ReportID   int32          `json:"report_id"`
-	AccountID  sql.NullInt32  `json:"account_id"`
-	SongID     sql.NullInt32  `json:"song_id"`
-	Reason     sql.NullString `json:"reason"`
-	ReportedAt sql.NullTime   `json:"reported_at"`
+	ReportID   int32        `json:"report_id"`
+	AccountID  int32        `json:"account_id"`
+	SongID     int32        `json:"song_id"`
+	Reason     string       `json:"reason"`
+	ReportedAt sql.NullTime `json:"reported_at"`
+}
+
+type Repost struct {
+	RepostID   int32        `json:"repost_id"`
+	AccountID  int32        `json:"account_id"`
+	SongID     int32        `json:"song_id"`
+	RepostedAt sql.NullTime `json:"reposted_at"`
 }
 
 type Song struct {
-	SongID     int32          `json:"song_id"`
-	Title      string         `json:"title"`
-	Duration   time.Time      `json:"duration"`
-	FileUrl    string         `json:"file_url"`
-	AccountID  sql.NullInt32  `json:"account_id"`
-	Genre      sql.NullString `json:"genre"`
-	UploadDate sql.NullTime   `json:"upload_date"`
-	PlayCount  sql.NullInt32  `json:"play_count"`
-	LikeCount  sql.NullInt32  `json:"like_count"`
+	SongID      int32          `json:"song_id"`
+	Title       string         `json:"title"`
+	Duration    time.Time      `json:"duration"`
+	FileUrl     string         `json:"file_url"`
+	AccountID   int32          `json:"account_id"`
+	AlbumID     sql.NullInt32  `json:"album_id"`
+	Genre       sql.NullString `json:"genre"`
+	Tags        []string       `json:"tags"`
+	UploadDate  sql.NullTime   `json:"upload_date"`
+	PlayCount   sql.NullInt32  `json:"play_count"`
+	LikeCount   sql.NullInt32  `json:"like_count"`
+	RepostCount sql.NullInt32  `json:"repost_count"`
+	IsPublic    sql.NullBool   `json:"is_public"`
 }
 
 type Subscription struct {
-	SubscriptionID int32          `json:"subscription_id"`
-	AccountID      sql.NullInt32  `json:"account_id"`
-	PlanType       sql.NullString `json:"plan_type"`
-	StartDate      sql.NullTime   `json:"start_date"`
-	EndDate        sql.NullTime   `json:"end_date"`
+	SubscriptionID int32     `json:"subscription_id"`
+	AccountID      int32     `json:"account_id"`
+	PlanType       string    `json:"plan_type"`
+	StartDate      time.Time `json:"start_date"`
+	EndDate        time.Time `json:"end_date"`
 }

@@ -1,5 +1,8 @@
--- name: GetPlaylistSongs :many
-SELECT * FROM Playlist_Songs WHERE playlist_id = $1;
+-- name: GetSongsByPlaylistId :many
+SELECT s.*
+FROM Playlist_Songs ps
+JOIN Song s ON ps.song_id = s.song_id
+WHERE ps.playlist_id = $1;
 
 -- name: AddSongToPlaylist :exec
 INSERT INTO Playlist_Songs (playlist_id, song_id)

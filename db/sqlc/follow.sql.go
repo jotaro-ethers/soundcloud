@@ -9,18 +9,18 @@ import (
 	"context"
 )
 
-const followAccount = `-- name: FollowAccount :exec
+const followUser = `-- name: FollowUser :exec
 INSERT INTO Follow (follower_id, following_id)
 VALUES ($1, $2)
 `
 
-type FollowAccountParams struct {
+type FollowUserParams struct {
 	FollowerID  int32 `json:"follower_id"`
 	FollowingID int32 `json:"following_id"`
 }
 
-func (q *Queries) FollowAccount(ctx context.Context, arg FollowAccountParams) error {
-	_, err := q.exec(ctx, q.followAccountStmt, followAccount, arg.FollowerID, arg.FollowingID)
+func (q *Queries) FollowUser(ctx context.Context, arg FollowUserParams) error {
+	_, err := q.exec(ctx, q.followUserStmt, followUser, arg.FollowerID, arg.FollowingID)
 	return err
 }
 
@@ -78,16 +78,16 @@ func (q *Queries) GetFollowing(ctx context.Context, followerID int32) ([]Follow,
 	return items, nil
 }
 
-const unfollowAccount = `-- name: UnfollowAccount :exec
+const unfollowUser = `-- name: UnfollowUser :exec
 DELETE FROM Follow WHERE follower_id = $1 AND following_id = $2
 `
 
-type UnfollowAccountParams struct {
+type UnfollowUserParams struct {
 	FollowerID  int32 `json:"follower_id"`
 	FollowingID int32 `json:"following_id"`
 }
 
-func (q *Queries) UnfollowAccount(ctx context.Context, arg UnfollowAccountParams) error {
-	_, err := q.exec(ctx, q.unfollowAccountStmt, unfollowAccount, arg.FollowerID, arg.FollowingID)
+func (q *Queries) UnfollowUser(ctx context.Context, arg UnfollowUserParams) error {
+	_, err := q.exec(ctx, q.unfollowUserStmt, unfollowUser, arg.FollowerID, arg.FollowingID)
 	return err
 }

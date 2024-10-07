@@ -24,11 +24,14 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.addListenHistoryStmt, err = db.PrepareContext(ctx, addListenHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query AddListenHistory: %w", err)
+	}
 	if q.addSongToPlaylistStmt, err = db.PrepareContext(ctx, addSongToPlaylist); err != nil {
 		return nil, fmt.Errorf("error preparing query AddSongToPlaylist: %w", err)
 	}
-	if q.addToListenHistoryStmt, err = db.PrepareContext(ctx, addToListenHistory); err != nil {
-		return nil, fmt.Errorf("error preparing query AddToListenHistory: %w", err)
+	if q.cancelSubscriptionStmt, err = db.PrepareContext(ctx, cancelSubscription); err != nil {
+		return nil, fmt.Errorf("error preparing query CancelSubscription: %w", err)
 	}
 	if q.createAccountStmt, err = db.PrepareContext(ctx, createAccount); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateAccount: %w", err)
@@ -45,6 +48,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createSongStmt, err = db.PrepareContext(ctx, createSong); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateSong: %w", err)
 	}
+	if q.createSubscriptionStmt, err = db.PrepareContext(ctx, createSubscription); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateSubscription: %w", err)
+	}
 	if q.deleteAccountStmt, err = db.PrepareContext(ctx, deleteAccount); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteAccount: %w", err)
 	}
@@ -57,14 +63,26 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteReportStmt, err = db.PrepareContext(ctx, deleteReport); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteReport: %w", err)
 	}
+	if q.deleteRepostStmt, err = db.PrepareContext(ctx, deleteRepost); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRepost: %w", err)
+	}
 	if q.deleteSongStmt, err = db.PrepareContext(ctx, deleteSong); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteSong: %w", err)
 	}
-	if q.followAccountStmt, err = db.PrepareContext(ctx, followAccount); err != nil {
-		return nil, fmt.Errorf("error preparing query FollowAccount: %w", err)
+	if q.followUserStmt, err = db.PrepareContext(ctx, followUser); err != nil {
+		return nil, fmt.Errorf("error preparing query FollowUser: %w", err)
 	}
 	if q.getAccountByIdStmt, err = db.PrepareContext(ctx, getAccountById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAccountById: %w", err)
+	}
+	if q.getAllAccountsStmt, err = db.PrepareContext(ctx, getAllAccounts); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAllAccounts: %w", err)
+	}
+	if q.getAllPlaylistsStmt, err = db.PrepareContext(ctx, getAllPlaylists); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAllPlaylists: %w", err)
+	}
+	if q.getAllSongsStmt, err = db.PrepareContext(ctx, getAllSongs); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAllSongs: %w", err)
 	}
 	if q.getCommentsBySongIdStmt, err = db.PrepareContext(ctx, getCommentsBySongId); err != nil {
 		return nil, fmt.Errorf("error preparing query GetCommentsBySongId: %w", err)
@@ -84,14 +102,26 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getPlaylistByIdStmt, err = db.PrepareContext(ctx, getPlaylistById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPlaylistById: %w", err)
 	}
-	if q.getPlaylistSongsStmt, err = db.PrepareContext(ctx, getPlaylistSongs); err != nil {
-		return nil, fmt.Errorf("error preparing query GetPlaylistSongs: %w", err)
+	if q.getReportsByAccountIdStmt, err = db.PrepareContext(ctx, getReportsByAccountId); err != nil {
+		return nil, fmt.Errorf("error preparing query GetReportsByAccountId: %w", err)
 	}
 	if q.getReportsBySongIdStmt, err = db.PrepareContext(ctx, getReportsBySongId); err != nil {
 		return nil, fmt.Errorf("error preparing query GetReportsBySongId: %w", err)
 	}
+	if q.getRepostsByAccountIdStmt, err = db.PrepareContext(ctx, getRepostsByAccountId); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepostsByAccountId: %w", err)
+	}
+	if q.getRepostsBySongIdStmt, err = db.PrepareContext(ctx, getRepostsBySongId); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepostsBySongId: %w", err)
+	}
 	if q.getSongByIdStmt, err = db.PrepareContext(ctx, getSongById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSongById: %w", err)
+	}
+	if q.getSongsByPlaylistIdStmt, err = db.PrepareContext(ctx, getSongsByPlaylistId); err != nil {
+		return nil, fmt.Errorf("error preparing query GetSongsByPlaylistId: %w", err)
+	}
+	if q.getSubscriptionsByAccountIdStmt, err = db.PrepareContext(ctx, getSubscriptionsByAccountId); err != nil {
+		return nil, fmt.Errorf("error preparing query GetSubscriptionsByAccountId: %w", err)
 	}
 	if q.likeSongStmt, err = db.PrepareContext(ctx, likeSong); err != nil {
 		return nil, fmt.Errorf("error preparing query LikeSong: %w", err)
@@ -99,8 +129,11 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.removeSongFromPlaylistStmt, err = db.PrepareContext(ctx, removeSongFromPlaylist); err != nil {
 		return nil, fmt.Errorf("error preparing query RemoveSongFromPlaylist: %w", err)
 	}
-	if q.unfollowAccountStmt, err = db.PrepareContext(ctx, unfollowAccount); err != nil {
-		return nil, fmt.Errorf("error preparing query UnfollowAccount: %w", err)
+	if q.repostSongStmt, err = db.PrepareContext(ctx, repostSong); err != nil {
+		return nil, fmt.Errorf("error preparing query RepostSong: %w", err)
+	}
+	if q.unfollowUserStmt, err = db.PrepareContext(ctx, unfollowUser); err != nil {
+		return nil, fmt.Errorf("error preparing query UnfollowUser: %w", err)
 	}
 	if q.unlikeSongStmt, err = db.PrepareContext(ctx, unlikeSong); err != nil {
 		return nil, fmt.Errorf("error preparing query UnlikeSong: %w", err)
@@ -119,14 +152,19 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.addListenHistoryStmt != nil {
+		if cerr := q.addListenHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addListenHistoryStmt: %w", cerr)
+		}
+	}
 	if q.addSongToPlaylistStmt != nil {
 		if cerr := q.addSongToPlaylistStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing addSongToPlaylistStmt: %w", cerr)
 		}
 	}
-	if q.addToListenHistoryStmt != nil {
-		if cerr := q.addToListenHistoryStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing addToListenHistoryStmt: %w", cerr)
+	if q.cancelSubscriptionStmt != nil {
+		if cerr := q.cancelSubscriptionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing cancelSubscriptionStmt: %w", cerr)
 		}
 	}
 	if q.createAccountStmt != nil {
@@ -154,6 +192,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createSongStmt: %w", cerr)
 		}
 	}
+	if q.createSubscriptionStmt != nil {
+		if cerr := q.createSubscriptionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createSubscriptionStmt: %w", cerr)
+		}
+	}
 	if q.deleteAccountStmt != nil {
 		if cerr := q.deleteAccountStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteAccountStmt: %w", cerr)
@@ -174,19 +217,39 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteReportStmt: %w", cerr)
 		}
 	}
+	if q.deleteRepostStmt != nil {
+		if cerr := q.deleteRepostStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRepostStmt: %w", cerr)
+		}
+	}
 	if q.deleteSongStmt != nil {
 		if cerr := q.deleteSongStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteSongStmt: %w", cerr)
 		}
 	}
-	if q.followAccountStmt != nil {
-		if cerr := q.followAccountStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing followAccountStmt: %w", cerr)
+	if q.followUserStmt != nil {
+		if cerr := q.followUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing followUserStmt: %w", cerr)
 		}
 	}
 	if q.getAccountByIdStmt != nil {
 		if cerr := q.getAccountByIdStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getAccountByIdStmt: %w", cerr)
+		}
+	}
+	if q.getAllAccountsStmt != nil {
+		if cerr := q.getAllAccountsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAllAccountsStmt: %w", cerr)
+		}
+	}
+	if q.getAllPlaylistsStmt != nil {
+		if cerr := q.getAllPlaylistsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAllPlaylistsStmt: %w", cerr)
+		}
+	}
+	if q.getAllSongsStmt != nil {
+		if cerr := q.getAllSongsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAllSongsStmt: %w", cerr)
 		}
 	}
 	if q.getCommentsBySongIdStmt != nil {
@@ -219,9 +282,9 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getPlaylistByIdStmt: %w", cerr)
 		}
 	}
-	if q.getPlaylistSongsStmt != nil {
-		if cerr := q.getPlaylistSongsStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing getPlaylistSongsStmt: %w", cerr)
+	if q.getReportsByAccountIdStmt != nil {
+		if cerr := q.getReportsByAccountIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getReportsByAccountIdStmt: %w", cerr)
 		}
 	}
 	if q.getReportsBySongIdStmt != nil {
@@ -229,9 +292,29 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getReportsBySongIdStmt: %w", cerr)
 		}
 	}
+	if q.getRepostsByAccountIdStmt != nil {
+		if cerr := q.getRepostsByAccountIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepostsByAccountIdStmt: %w", cerr)
+		}
+	}
+	if q.getRepostsBySongIdStmt != nil {
+		if cerr := q.getRepostsBySongIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepostsBySongIdStmt: %w", cerr)
+		}
+	}
 	if q.getSongByIdStmt != nil {
 		if cerr := q.getSongByIdStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getSongByIdStmt: %w", cerr)
+		}
+	}
+	if q.getSongsByPlaylistIdStmt != nil {
+		if cerr := q.getSongsByPlaylistIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getSongsByPlaylistIdStmt: %w", cerr)
+		}
+	}
+	if q.getSubscriptionsByAccountIdStmt != nil {
+		if cerr := q.getSubscriptionsByAccountIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getSubscriptionsByAccountIdStmt: %w", cerr)
 		}
 	}
 	if q.likeSongStmt != nil {
@@ -244,9 +327,14 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing removeSongFromPlaylistStmt: %w", cerr)
 		}
 	}
-	if q.unfollowAccountStmt != nil {
-		if cerr := q.unfollowAccountStmt.Close(); cerr != nil {
-			err = fmt.Errorf("error closing unfollowAccountStmt: %w", cerr)
+	if q.repostSongStmt != nil {
+		if cerr := q.repostSongStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing repostSongStmt: %w", cerr)
+		}
+	}
+	if q.unfollowUserStmt != nil {
+		if cerr := q.unfollowUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing unfollowUserStmt: %w", cerr)
 		}
 	}
 	if q.unlikeSongStmt != nil {
@@ -308,32 +396,43 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                              DBTX
 	tx                              *sql.Tx
+	addListenHistoryStmt            *sql.Stmt
 	addSongToPlaylistStmt           *sql.Stmt
-	addToListenHistoryStmt          *sql.Stmt
+	cancelSubscriptionStmt          *sql.Stmt
 	createAccountStmt               *sql.Stmt
 	createCommentStmt               *sql.Stmt
 	createPlaylistStmt              *sql.Stmt
 	createReportStmt                *sql.Stmt
 	createSongStmt                  *sql.Stmt
+	createSubscriptionStmt          *sql.Stmt
 	deleteAccountStmt               *sql.Stmt
 	deleteCommentStmt               *sql.Stmt
 	deletePlaylistStmt              *sql.Stmt
 	deleteReportStmt                *sql.Stmt
+	deleteRepostStmt                *sql.Stmt
 	deleteSongStmt                  *sql.Stmt
-	followAccountStmt               *sql.Stmt
+	followUserStmt                  *sql.Stmt
 	getAccountByIdStmt              *sql.Stmt
+	getAllAccountsStmt              *sql.Stmt
+	getAllPlaylistsStmt             *sql.Stmt
+	getAllSongsStmt                 *sql.Stmt
 	getCommentsBySongIdStmt         *sql.Stmt
 	getFollowersStmt                *sql.Stmt
 	getFollowingStmt                *sql.Stmt
 	getLikesBySongIdStmt            *sql.Stmt
 	getListenHistoryByAccountIdStmt *sql.Stmt
 	getPlaylistByIdStmt             *sql.Stmt
-	getPlaylistSongsStmt            *sql.Stmt
+	getReportsByAccountIdStmt       *sql.Stmt
 	getReportsBySongIdStmt          *sql.Stmt
+	getRepostsByAccountIdStmt       *sql.Stmt
+	getRepostsBySongIdStmt          *sql.Stmt
 	getSongByIdStmt                 *sql.Stmt
+	getSongsByPlaylistIdStmt        *sql.Stmt
+	getSubscriptionsByAccountIdStmt *sql.Stmt
 	likeSongStmt                    *sql.Stmt
 	removeSongFromPlaylistStmt      *sql.Stmt
-	unfollowAccountStmt             *sql.Stmt
+	repostSongStmt                  *sql.Stmt
+	unfollowUserStmt                *sql.Stmt
 	unlikeSongStmt                  *sql.Stmt
 	updateAccountStmt               *sql.Stmt
 	updatePlaylistStmt              *sql.Stmt
@@ -344,32 +443,43 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                              tx,
 		tx:                              tx,
+		addListenHistoryStmt:            q.addListenHistoryStmt,
 		addSongToPlaylistStmt:           q.addSongToPlaylistStmt,
-		addToListenHistoryStmt:          q.addToListenHistoryStmt,
+		cancelSubscriptionStmt:          q.cancelSubscriptionStmt,
 		createAccountStmt:               q.createAccountStmt,
 		createCommentStmt:               q.createCommentStmt,
 		createPlaylistStmt:              q.createPlaylistStmt,
 		createReportStmt:                q.createReportStmt,
 		createSongStmt:                  q.createSongStmt,
+		createSubscriptionStmt:          q.createSubscriptionStmt,
 		deleteAccountStmt:               q.deleteAccountStmt,
 		deleteCommentStmt:               q.deleteCommentStmt,
 		deletePlaylistStmt:              q.deletePlaylistStmt,
 		deleteReportStmt:                q.deleteReportStmt,
+		deleteRepostStmt:                q.deleteRepostStmt,
 		deleteSongStmt:                  q.deleteSongStmt,
-		followAccountStmt:               q.followAccountStmt,
+		followUserStmt:                  q.followUserStmt,
 		getAccountByIdStmt:              q.getAccountByIdStmt,
+		getAllAccountsStmt:              q.getAllAccountsStmt,
+		getAllPlaylistsStmt:             q.getAllPlaylistsStmt,
+		getAllSongsStmt:                 q.getAllSongsStmt,
 		getCommentsBySongIdStmt:         q.getCommentsBySongIdStmt,
 		getFollowersStmt:                q.getFollowersStmt,
 		getFollowingStmt:                q.getFollowingStmt,
 		getLikesBySongIdStmt:            q.getLikesBySongIdStmt,
 		getListenHistoryByAccountIdStmt: q.getListenHistoryByAccountIdStmt,
 		getPlaylistByIdStmt:             q.getPlaylistByIdStmt,
-		getPlaylistSongsStmt:            q.getPlaylistSongsStmt,
+		getReportsByAccountIdStmt:       q.getReportsByAccountIdStmt,
 		getReportsBySongIdStmt:          q.getReportsBySongIdStmt,
+		getRepostsByAccountIdStmt:       q.getRepostsByAccountIdStmt,
+		getRepostsBySongIdStmt:          q.getRepostsBySongIdStmt,
 		getSongByIdStmt:                 q.getSongByIdStmt,
+		getSongsByPlaylistIdStmt:        q.getSongsByPlaylistIdStmt,
+		getSubscriptionsByAccountIdStmt: q.getSubscriptionsByAccountIdStmt,
 		likeSongStmt:                    q.likeSongStmt,
 		removeSongFromPlaylistStmt:      q.removeSongFromPlaylistStmt,
-		unfollowAccountStmt:             q.unfollowAccountStmt,
+		repostSongStmt:                  q.repostSongStmt,
+		unfollowUserStmt:                q.unfollowUserStmt,
 		unlikeSongStmt:                  q.unlikeSongStmt,
 		updateAccountStmt:               q.updateAccountStmt,
 		updatePlaylistStmt:              q.updatePlaylistStmt,

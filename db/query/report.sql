@@ -1,3 +1,6 @@
+-- name: GetReportsByAccountId :many
+SELECT * FROM Report WHERE account_id = $1;
+
 -- name: GetReportsBySongId :many
 SELECT * FROM Report WHERE song_id = $1;
 
