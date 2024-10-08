@@ -10,30 +10,12 @@ import (
 	"database/sql"
 	"reflect"
 	"testing"
+
 	"github.com/jotaro-ethers/soundcloud/utils"
 )
 
-func CreateRandomAcccount(t *testing.T, q *Queries) Account {
-	t.Helper()
-	accountParams := CreateAccountParams{
-		Username:    utils.RandomString(10),
-		DisplayName: sql.NullString{String: utils.RandomString(10), Valid: true},
-		Email:       utils.RandomString(10) + "@example.com",
-		Password:    utils.RandomString(20),
-		Bio:         sql.NullString{String: utils.RandomString(50), Valid: true},
-		AvatarUrl:   sql.NullString{String: "https://example.com/avatar.jpg", Valid: true},
-		Role: "user",
-	}
-
-	account, err := q.CreateAccount(context.TODO(), accountParams)
-	if err != nil {
-		t.Fatalf("Không thể tạo tài khoản ngẫu nhiên: %v", err)
-	}
-
-	return account
-}
-
 func TestQueries_CreateAccount(t *testing.T) {
+	randomEmail := utils.RandomString(10) + "@example.com"
 	type fields struct {
 		db                              DBTX
 		tx                              *sql.Tx
@@ -96,19 +78,34 @@ func TestQueries_CreateAccount(t *testing.T) {
 				db: testDB,
 			},
 			args: args{
-				ctx : context.TODO(),
+				ctx: context.TODO(),
 				arg: CreateAccountParams{
 					Username:    utils.RandomString(10),
 					DisplayName: sql.NullString{String: utils.RandomString(10), Valid: true},
-					Email:       utils.RandomString(10) + "@example.com",
+					Email:       randomEmail,
 					Password:    utils.RandomString(20),
 					Bio:         sql.NullString{String: utils.RandomString(50), Valid: true},
 					AvatarUrl:   sql.NullString{String: "https://example.com/avatar.jpg", Valid: true},
-					Role: "user",
+					Role:        "user",
 				},
 			},
 			wantErr: false,
 			want:    Account{},
+		},
+		{
+			name: "Create Account - Email Exists - Error",
+			fields: fields{
+				db: testDB,
+			},
+			args: args{
+				ctx: context.TODO(),
+				arg: CreateAccountParams{
+					Username:    utils.RandomString(10),
+					DisplayName: sql.NullString{String: utils.RandomString(10), Valid: true},
+					Email:       randomEmail,
+				},
+			},
+			wantErr: true,
 		},
 	}
 
@@ -172,6 +169,9 @@ func TestQueries_CreateAccount(t *testing.T) {
 			got, err := q.CreateAccount(tt.args.ctx, tt.args.arg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Queries.CreateAccount() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
 				return
 			}
 			tt.want.AccountID = got.AccountID
@@ -250,9 +250,8 @@ func TestQueries_GetAccountById(t *testing.T) {
 				accountID: 1,
 			},
 			wantErr: false,
-			want: Account{},
+			want:    Account{},
 		},
-	
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -302,7 +301,6 @@ func TestQueries_GetAccountById(t *testing.T) {
 				updateSongStmt:                  tt.fields.updateSongStmt,
 			}
 			randAccount := CreateRandomAccount(t, q)
-
 			tt.args.accountID = randAccount.AccountID
 			tt.want = randAccount
 			got, err := q.GetAccountById(tt.args.ctx, tt.args.accountID)
@@ -313,6 +311,412 @@ func TestQueries_GetAccountById(t *testing.T) {
 
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Queries.GetAccountById() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQueries_GetAllAccounts(t *testing.T) {
+	type fields struct {
+		db                              DBTX
+		tx                              *sql.Tx
+		addListenHistoryStmt            *sql.Stmt
+		addSongToPlaylistStmt           *sql.Stmt
+		cancelSubscriptionStmt          *sql.Stmt
+		createAccountStmt               *sql.Stmt
+		createCommentStmt               *sql.Stmt
+		createPlaylistStmt              *sql.Stmt
+		createReportStmt                *sql.Stmt
+		createSongStmt                  *sql.Stmt
+		createSubscriptionStmt          *sql.Stmt
+		deleteAccountStmt               *sql.Stmt
+		deleteCommentStmt               *sql.Stmt
+		deletePlaylistStmt              *sql.Stmt
+		deleteReportStmt                *sql.Stmt
+		deleteRepostStmt                *sql.Stmt
+		deleteSongStmt                  *sql.Stmt
+		followUserStmt                  *sql.Stmt
+		getAccountByIdStmt              *sql.Stmt
+		getAllAccountsStmt              *sql.Stmt
+		getAllPlaylistsStmt             *sql.Stmt
+		getAllSongsStmt                 *sql.Stmt
+		getCommentsBySongIdStmt         *sql.Stmt
+		getFollowersStmt                *sql.Stmt
+		getFollowingStmt                *sql.Stmt
+		getLikesBySongIdStmt            *sql.Stmt
+		getListenHistoryByAccountIdStmt *sql.Stmt
+		getPlaylistByIdStmt             *sql.Stmt
+		getReportsByAccountIdStmt       *sql.Stmt
+		getReportsBySongIdStmt          *sql.Stmt
+		getRepostsByAccountIdStmt       *sql.Stmt
+		getRepostsBySongIdStmt          *sql.Stmt
+		getSongByIdStmt                 *sql.Stmt
+		getSongsByPlaylistIdStmt        *sql.Stmt
+		getSubscriptionsByAccountIdStmt *sql.Stmt
+		likeSongStmt                    *sql.Stmt
+		removeSongFromPlaylistStmt      *sql.Stmt
+		repostSongStmt                  *sql.Stmt
+		unfollowUserStmt                *sql.Stmt
+		unlikeSongStmt                  *sql.Stmt
+		updateAccountStmt               *sql.Stmt
+		updatePlaylistStmt              *sql.Stmt
+		updateSongStmt                  *sql.Stmt
+	}
+	type args struct {
+		ctx context.Context
+		arg GetAllAccountsParams
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []Account
+		wantErr bool
+	}{
+		{
+			name: "Get All Accounts - Success",
+			fields: fields{
+				db: testDB,
+			},
+
+			args: args{
+				ctx: context.Background(),
+				arg: GetAllAccountsParams{
+					Limit:  5,
+					Offset: 0,
+				},
+			},
+			wantErr: false,
+			want:    []Account{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := &Queries{
+				db:                              tt.fields.db,
+				tx:                              tt.fields.tx,
+				addListenHistoryStmt:            tt.fields.addListenHistoryStmt,
+				addSongToPlaylistStmt:           tt.fields.addSongToPlaylistStmt,
+				cancelSubscriptionStmt:          tt.fields.cancelSubscriptionStmt,
+				createAccountStmt:               tt.fields.createAccountStmt,
+				createCommentStmt:               tt.fields.createCommentStmt,
+				createPlaylistStmt:              tt.fields.createPlaylistStmt,
+				createReportStmt:                tt.fields.createReportStmt,
+				createSongStmt:                  tt.fields.createSongStmt,
+				createSubscriptionStmt:          tt.fields.createSubscriptionStmt,
+				deleteAccountStmt:               tt.fields.deleteAccountStmt,
+				deleteCommentStmt:               tt.fields.deleteCommentStmt,
+				deletePlaylistStmt:              tt.fields.deletePlaylistStmt,
+				deleteReportStmt:                tt.fields.deleteReportStmt,
+				deleteRepostStmt:                tt.fields.deleteRepostStmt,
+				deleteSongStmt:                  tt.fields.deleteSongStmt,
+				followUserStmt:                  tt.fields.followUserStmt,
+				getAccountByIdStmt:              tt.fields.getAccountByIdStmt,
+				getAllAccountsStmt:              tt.fields.getAllAccountsStmt,
+				getAllPlaylistsStmt:             tt.fields.getAllPlaylistsStmt,
+				getAllSongsStmt:                 tt.fields.getAllSongsStmt,
+				getCommentsBySongIdStmt:         tt.fields.getCommentsBySongIdStmt,
+				getFollowersStmt:                tt.fields.getFollowersStmt,
+				getFollowingStmt:                tt.fields.getFollowingStmt,
+				getLikesBySongIdStmt:            tt.fields.getLikesBySongIdStmt,
+				getListenHistoryByAccountIdStmt: tt.fields.getListenHistoryByAccountIdStmt,
+				getPlaylistByIdStmt:             tt.fields.getPlaylistByIdStmt,
+				getReportsByAccountIdStmt:       tt.fields.getReportsByAccountIdStmt,
+				getReportsBySongIdStmt:          tt.fields.getReportsBySongIdStmt,
+				getRepostsByAccountIdStmt:       tt.fields.getRepostsByAccountIdStmt,
+				getRepostsBySongIdStmt:          tt.fields.getRepostsBySongIdStmt,
+				getSongByIdStmt:                 tt.fields.getSongByIdStmt,
+				getSongsByPlaylistIdStmt:        tt.fields.getSongsByPlaylistIdStmt,
+				getSubscriptionsByAccountIdStmt: tt.fields.getSubscriptionsByAccountIdStmt,
+				likeSongStmt:                    tt.fields.likeSongStmt,
+				removeSongFromPlaylistStmt:      tt.fields.removeSongFromPlaylistStmt,
+				repostSongStmt:                  tt.fields.repostSongStmt,
+				unfollowUserStmt:                tt.fields.unfollowUserStmt,
+				unlikeSongStmt:                  tt.fields.unlikeSongStmt,
+				updateAccountStmt:               tt.fields.updateAccountStmt,
+				updatePlaylistStmt:              tt.fields.updatePlaylistStmt,
+				updateSongStmt:                  tt.fields.updateSongStmt,
+			}
+			tt.args.arg.Offset = getAccountCount(t, q)
+			createdAccount := make([]Account, 5)
+			for i := 0; i < 5; i++ {
+				createdAccount[i] = CreateRandomAccount(t, q)
+			}
+			tt.want = createdAccount
+			got, err := q.GetAllAccounts(tt.args.ctx, tt.args.arg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Queries.GetAllAccounts() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Queries.GetAllAccounts() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQueries_UpdateAccount(t *testing.T) {
+	randomUsername := utils.RandomString(10)
+	type fields struct {
+		db                              DBTX
+		tx                              *sql.Tx
+		addListenHistoryStmt            *sql.Stmt
+		addSongToPlaylistStmt           *sql.Stmt
+		cancelSubscriptionStmt          *sql.Stmt
+		createAccountStmt               *sql.Stmt
+		createCommentStmt               *sql.Stmt
+		createPlaylistStmt              *sql.Stmt
+		createReportStmt                *sql.Stmt
+		createSongStmt                  *sql.Stmt
+		createSubscriptionStmt          *sql.Stmt
+		deleteAccountStmt               *sql.Stmt
+		deleteCommentStmt               *sql.Stmt
+		deletePlaylistStmt              *sql.Stmt
+		deleteReportStmt                *sql.Stmt
+		deleteRepostStmt                *sql.Stmt
+		deleteSongStmt                  *sql.Stmt
+		followUserStmt                  *sql.Stmt
+		getAccountByIdStmt              *sql.Stmt
+		getAllAccountsStmt              *sql.Stmt
+		getAllPlaylistsStmt             *sql.Stmt
+		getAllSongsStmt                 *sql.Stmt
+		getCommentsBySongIdStmt         *sql.Stmt
+		getFollowersStmt                *sql.Stmt
+		getFollowingStmt                *sql.Stmt
+		getLikesBySongIdStmt            *sql.Stmt
+		getListenHistoryByAccountIdStmt *sql.Stmt
+		getPlaylistByIdStmt             *sql.Stmt
+		getReportsByAccountIdStmt       *sql.Stmt
+		getReportsBySongIdStmt          *sql.Stmt
+		getRepostsByAccountIdStmt       *sql.Stmt
+		getRepostsBySongIdStmt          *sql.Stmt
+		getSongByIdStmt                 *sql.Stmt
+		getSongsByPlaylistIdStmt        *sql.Stmt
+		getSubscriptionsByAccountIdStmt *sql.Stmt
+		likeSongStmt                    *sql.Stmt
+		removeSongFromPlaylistStmt      *sql.Stmt
+		repostSongStmt                  *sql.Stmt
+		unfollowUserStmt                *sql.Stmt
+		unlikeSongStmt                  *sql.Stmt
+		updateAccountStmt               *sql.Stmt
+		updatePlaylistStmt              *sql.Stmt
+		updateSongStmt                  *sql.Stmt
+	}
+	type args struct {
+		ctx context.Context
+		arg UpdateAccountParams
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Update Account - Success",
+			fields: fields{
+				db: testDB,
+			},
+			args: args{
+				ctx: context.TODO(),
+				arg: UpdateAccountParams{
+					AccountID: 0,
+					Username:  randomUsername,
+					Email:     utils.RandomString(10) + "@example.com",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Update Account - Username Exists - Error",
+			fields: fields{
+				db: testDB,
+			},
+			args: args{
+				ctx: context.TODO(),
+				arg: UpdateAccountParams{
+					AccountID: 0,
+					Username:  randomUsername,
+					Email:     utils.RandomString(10) + "@example.com",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := &Queries{
+				db:                              tt.fields.db,
+				tx:                              tt.fields.tx,
+				addListenHistoryStmt:            tt.fields.addListenHistoryStmt,
+				addSongToPlaylistStmt:           tt.fields.addSongToPlaylistStmt,
+				cancelSubscriptionStmt:          tt.fields.cancelSubscriptionStmt,
+				createAccountStmt:               tt.fields.createAccountStmt,
+				createCommentStmt:               tt.fields.createCommentStmt,
+				createPlaylistStmt:              tt.fields.createPlaylistStmt,
+				createReportStmt:                tt.fields.createReportStmt,
+				createSongStmt:                  tt.fields.createSongStmt,
+				createSubscriptionStmt:          tt.fields.createSubscriptionStmt,
+				deleteAccountStmt:               tt.fields.deleteAccountStmt,
+				deleteCommentStmt:               tt.fields.deleteCommentStmt,
+				deletePlaylistStmt:              tt.fields.deletePlaylistStmt,
+				deleteReportStmt:                tt.fields.deleteReportStmt,
+				deleteRepostStmt:                tt.fields.deleteRepostStmt,
+				deleteSongStmt:                  tt.fields.deleteSongStmt,
+				followUserStmt:                  tt.fields.followUserStmt,
+				getAccountByIdStmt:              tt.fields.getAccountByIdStmt,
+				getAllAccountsStmt:              tt.fields.getAllAccountsStmt,
+				getAllPlaylistsStmt:             tt.fields.getAllPlaylistsStmt,
+				getAllSongsStmt:                 tt.fields.getAllSongsStmt,
+				getCommentsBySongIdStmt:         tt.fields.getCommentsBySongIdStmt,
+				getFollowersStmt:                tt.fields.getFollowersStmt,
+				getFollowingStmt:                tt.fields.getFollowingStmt,
+				getLikesBySongIdStmt:            tt.fields.getLikesBySongIdStmt,
+				getListenHistoryByAccountIdStmt: tt.fields.getListenHistoryByAccountIdStmt,
+				getPlaylistByIdStmt:             tt.fields.getPlaylistByIdStmt,
+				getReportsByAccountIdStmt:       tt.fields.getReportsByAccountIdStmt,
+				getReportsBySongIdStmt:          tt.fields.getReportsBySongIdStmt,
+				getRepostsByAccountIdStmt:       tt.fields.getRepostsByAccountIdStmt,
+				getRepostsBySongIdStmt:          tt.fields.getRepostsBySongIdStmt,
+				getSongByIdStmt:                 tt.fields.getSongByIdStmt,
+				getSongsByPlaylistIdStmt:        tt.fields.getSongsByPlaylistIdStmt,
+				getSubscriptionsByAccountIdStmt: tt.fields.getSubscriptionsByAccountIdStmt,
+				likeSongStmt:                    tt.fields.likeSongStmt,
+				removeSongFromPlaylistStmt:      tt.fields.removeSongFromPlaylistStmt,
+				repostSongStmt:                  tt.fields.repostSongStmt,
+				unfollowUserStmt:                tt.fields.unfollowUserStmt,
+				unlikeSongStmt:                  tt.fields.unlikeSongStmt,
+				updateAccountStmt:               tt.fields.updateAccountStmt,
+				updatePlaylistStmt:              tt.fields.updatePlaylistStmt,
+				updateSongStmt:                  tt.fields.updateSongStmt,
+			}
+			createdAccount := CreateRandomAccount(t, q)
+			tt.args.arg.AccountID = createdAccount.AccountID
+			if err := q.UpdateAccount(tt.args.ctx, tt.args.arg); (err != nil) != tt.wantErr {
+				t.Errorf("Queries.UpdateAccount() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestQueries_DeleteAccount(t *testing.T) {
+	type fields struct {
+		db                              DBTX
+		tx                              *sql.Tx
+		addListenHistoryStmt            *sql.Stmt
+		addSongToPlaylistStmt           *sql.Stmt
+		cancelSubscriptionStmt          *sql.Stmt
+		createAccountStmt               *sql.Stmt
+		createCommentStmt               *sql.Stmt
+		createPlaylistStmt              *sql.Stmt
+		createReportStmt                *sql.Stmt
+		createSongStmt                  *sql.Stmt
+		createSubscriptionStmt          *sql.Stmt
+		deleteAccountStmt               *sql.Stmt
+		deleteCommentStmt               *sql.Stmt
+		deletePlaylistStmt              *sql.Stmt
+		deleteReportStmt                *sql.Stmt
+		deleteRepostStmt                *sql.Stmt
+		deleteSongStmt                  *sql.Stmt
+		followUserStmt                  *sql.Stmt
+		getAccountByIdStmt              *sql.Stmt
+		getAllAccountsStmt              *sql.Stmt
+		getAllPlaylistsStmt             *sql.Stmt
+		getAllSongsStmt                 *sql.Stmt
+		getCommentsBySongIdStmt         *sql.Stmt
+		getFollowersStmt                *sql.Stmt
+		getFollowingStmt                *sql.Stmt
+		getLikesBySongIdStmt            *sql.Stmt
+		getListenHistoryByAccountIdStmt *sql.Stmt
+		getPlaylistByIdStmt             *sql.Stmt
+		getReportsByAccountIdStmt       *sql.Stmt
+		getReportsBySongIdStmt          *sql.Stmt
+		getRepostsByAccountIdStmt       *sql.Stmt
+		getRepostsBySongIdStmt          *sql.Stmt
+		getSongByIdStmt                 *sql.Stmt
+		getSongsByPlaylistIdStmt        *sql.Stmt
+		getSubscriptionsByAccountIdStmt *sql.Stmt
+		likeSongStmt                    *sql.Stmt
+		removeSongFromPlaylistStmt      *sql.Stmt
+		repostSongStmt                  *sql.Stmt
+		unfollowUserStmt                *sql.Stmt
+		unlikeSongStmt                  *sql.Stmt
+		updateAccountStmt               *sql.Stmt
+		updatePlaylistStmt              *sql.Stmt
+		updateSongStmt                  *sql.Stmt
+	}
+	type args struct {
+		ctx       context.Context
+		accountID int32
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Delete Account - Success",
+			fields: fields{
+				db: testDB,
+			},
+			args: args{
+				ctx:       context.TODO(),
+				accountID: 0,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := &Queries{
+				db:                              tt.fields.db,
+				tx:                              tt.fields.tx,
+				addListenHistoryStmt:            tt.fields.addListenHistoryStmt,
+				addSongToPlaylistStmt:           tt.fields.addSongToPlaylistStmt,
+				cancelSubscriptionStmt:          tt.fields.cancelSubscriptionStmt,
+				createAccountStmt:               tt.fields.createAccountStmt,
+				createCommentStmt:               tt.fields.createCommentStmt,
+				createPlaylistStmt:              tt.fields.createPlaylistStmt,
+				createReportStmt:                tt.fields.createReportStmt,
+				createSongStmt:                  tt.fields.createSongStmt,
+				createSubscriptionStmt:          tt.fields.createSubscriptionStmt,
+				deleteAccountStmt:               tt.fields.deleteAccountStmt,
+				deleteCommentStmt:               tt.fields.deleteCommentStmt,
+				deletePlaylistStmt:              tt.fields.deletePlaylistStmt,
+				deleteReportStmt:                tt.fields.deleteReportStmt,
+				deleteRepostStmt:                tt.fields.deleteRepostStmt,
+				deleteSongStmt:                  tt.fields.deleteSongStmt,
+				followUserStmt:                  tt.fields.followUserStmt,
+				getAccountByIdStmt:              tt.fields.getAccountByIdStmt,
+				getAllAccountsStmt:              tt.fields.getAllAccountsStmt,
+				getAllPlaylistsStmt:             tt.fields.getAllPlaylistsStmt,
+				getAllSongsStmt:                 tt.fields.getAllSongsStmt,
+				getCommentsBySongIdStmt:         tt.fields.getCommentsBySongIdStmt,
+				getFollowersStmt:                tt.fields.getFollowersStmt,
+				getFollowingStmt:                tt.fields.getFollowingStmt,
+				getLikesBySongIdStmt:            tt.fields.getLikesBySongIdStmt,
+				getListenHistoryByAccountIdStmt: tt.fields.getListenHistoryByAccountIdStmt,
+				getPlaylistByIdStmt:             tt.fields.getPlaylistByIdStmt,
+				getReportsByAccountIdStmt:       tt.fields.getReportsByAccountIdStmt,
+				getReportsBySongIdStmt:          tt.fields.getReportsBySongIdStmt,
+				getRepostsByAccountIdStmt:       tt.fields.getRepostsByAccountIdStmt,
+				getRepostsBySongIdStmt:          tt.fields.getRepostsBySongIdStmt,
+				getSongByIdStmt:                 tt.fields.getSongByIdStmt,
+				getSongsByPlaylistIdStmt:        tt.fields.getSongsByPlaylistIdStmt,
+				getSubscriptionsByAccountIdStmt: tt.fields.getSubscriptionsByAccountIdStmt,
+				likeSongStmt:                    tt.fields.likeSongStmt,
+				removeSongFromPlaylistStmt:      tt.fields.removeSongFromPlaylistStmt,
+				repostSongStmt:                  tt.fields.repostSongStmt,
+				unfollowUserStmt:                tt.fields.unfollowUserStmt,
+				unlikeSongStmt:                  tt.fields.unlikeSongStmt,
+				updateAccountStmt:               tt.fields.updateAccountStmt,
+				updatePlaylistStmt:              tt.fields.updatePlaylistStmt,
+				updateSongStmt:                  tt.fields.updateSongStmt,
+			}
+			createdAccount := CreateRandomAccount(t, q)
+			tt.args.accountID = createdAccount.AccountID
+			if err := q.DeleteAccount(tt.args.ctx, tt.args.accountID); (err != nil) != tt.wantErr {
+				t.Errorf("Queries.DeleteAccount() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

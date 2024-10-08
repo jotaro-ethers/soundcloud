@@ -26,3 +26,16 @@ func CreateRandomAccount(t *testing.T, q *Queries) Account {
 
 	return account
 }
+
+func getAccountCount(t *testing.T, q *Queries) int32 {
+    query := `SELECT COUNT(*) FROM Account`
+    var count int32
+	row := q.db.QueryRowContext(context.Background(), query)
+    err := row.Scan(&count)
+    if err != nil {
+        t.Fatalf("failed to count accounts: %v", err)
+    }
+	t.Logf("Account count: %d", count)
+    
+    return count
+}

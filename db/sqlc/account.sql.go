@@ -133,12 +133,15 @@ func (q *Queries) GetAllAccounts(ctx context.Context, arg GetAllAccountsParams) 
 
 const updateAccount = `-- name: UpdateAccount :exec
 UPDATE Account
-SET display_name = $1, bio = $2, avatar_url = $3, is_verified = $4
-WHERE account_id = $5
+SET username = $1, display_name = $2,email = $3, password = $4, bio = $5, avatar_url = $6, is_verified = $7
+WHERE account_id = $8
 `
 
 type UpdateAccountParams struct {
+	Username    string         `json:"username"`
 	DisplayName sql.NullString `json:"display_name"`
+	Email       string         `json:"email"`
+	Password    string         `json:"password"`
 	Bio         sql.NullString `json:"bio"`
 	AvatarUrl   sql.NullString `json:"avatar_url"`
 	IsVerified  bool           `json:"is_verified"`
@@ -147,7 +150,10 @@ type UpdateAccountParams struct {
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) error {
 	_, err := q.exec(ctx, q.updateAccountStmt, updateAccount,
+		arg.Username,
 		arg.DisplayName,
+		arg.Email,
+		arg.Password,
 		arg.Bio,
 		arg.AvatarUrl,
 		arg.IsVerified,

@@ -16,8 +16,8 @@ RETURNING *;
 
 -- name: UpdateAccount :exec
 UPDATE Account
-SET display_name = $1, bio = $2, avatar_url = $3, is_verified = $4
-WHERE account_id = $5;
+SET username = $1, display_name = $2,email = $3, password = $4, bio = $5, avatar_url = $6, is_verified = $7
+WHERE account_id = $8;
 
 -- name: DeleteAccount :exec
 DELETE FROM Account WHERE account_id = $1;
